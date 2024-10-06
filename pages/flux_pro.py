@@ -1,7 +1,19 @@
 import streamlit as st
 import os
+import sys
 import replicate
 import requests
+import base64
+import toml
+from streamlit_image_comparison import image_comparison
+
+# Add the parent directory to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+# Now import the workflow module
+from pages.utils.workflow import get_workflow_json  # Change this line
 
 # Set page configuration
 st.set_page_config(
@@ -10,10 +22,18 @@ st.set_page_config(
     layout="centered",
 )
 
+# Add the parent directory to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 st.title("🎨 Flux Pro 1.1")
 
 # Get the API key from Streamlit secrets
-api_key = st.secrets["REPLICATE_API_TOKEN"]
+secrets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.streamlit', 'secrets.toml')
+with open(secrets_path, 'r') as f:
+    secrets = toml.load(f)
+api_key = secrets["REPLICATE_API_TOKEN"]
 os.environ["REPLICATE_API_TOKEN"] = api_key
 
 # Hide Streamlit footer and add custom CSS
@@ -32,8 +52,8 @@ prompt = st.text_area("Enter your prompt", height=100)
 
 # Aspect ratio selection
 st.subheader("Select Aspect Ratio")
-aspect_ratios = ["1:1", "16:9", "3:2", "4:3", "5:4", "4:5", "Custom"]
-selected_ratio = st.selectbox("Aspect Ratio", aspect_ratios)
+aspect_ratios = ["16:9", "1:1", "3:2", "4:3", "5:4", "4:5", "Custom"]
+selected_ratio = st.selectbox("Aspect Ratio", aspect_ratios, index=0)
 
 # Orientation toggle
 if selected_ratio != "1:1":
@@ -51,9 +71,9 @@ if selected_ratio == "Custom":
     st.subheader("Custom Dimensions")
     col1, col2 = st.columns(2)
     with col1:
-        width = st.number_input("Width (px)", min_value=100, max_value=4096, value=1024)
+        width = st.number_input("Width (px)", min_value=256, max_value=1440, value=1024)
     with col2:
-        height = st.number_input("Height (px)", min_value=100, max_value=4096, value=1024)
+        height = st.number_input("Height (px)", min_value=256, max_value=1440, value=1024)
 else:
     # Map aspect ratios to dimensions
     ratio_map = {
@@ -67,14 +87,26 @@ else:
     ratio = ratio_map[selected_ratio]
     if orientation == "Vertical":
         ratio = (ratio[1], ratio[0])
-    width, height = ratio
-    # Scale dimensions to a standard size
-    scale = 512 / max(width, height)
-    width = int(width * scale)
-    height = int(height * scale)
+    
+    # Calculate dimensions based on the maximum allowed width or height
+    max_dimension = 1440
+    if ratio[0] > ratio[1]:
+        width = max_dimension
+        height = int(width * ratio[1] / ratio[0])
+    else:
+        height = max_dimension
+        width = int(height * ratio[0] / ratio[1])
+    
+    # Ensure minimum dimension is at least 256
+    if width < 256:
+        width = 256
+        height = int(width * ratio[1] / ratio[0])
+    if height < 256:
+        height = 256
+        width = int(height * ratio[0] / ratio[1])
 
 # Prompt upsampling toggle
-prompt_upsampling = st.checkbox("Enable Prompt Upsampling", value=False)
+prompt_upsampling = st.checkbox("Enable Prompt Upsampling", value=True)
 
 # Generate button
 if st.button("🎨 Generate Image"):
@@ -86,7 +118,7 @@ if st.button("🎨 Generate Image"):
                     "width": width,
                     "height": height,
                     "prompt": prompt,
-                    "aspect_ratio": "custom",
+                    "aspect_ratio": selected_ratio if selected_ratio != "Custom" else "custom",
                     "output_format": "png",
                     "output_quality": 100,
                     "safety_tolerance": 5,
@@ -96,13 +128,15 @@ if st.button("🎨 Generate Image"):
 
             if output and isinstance(output, str):
                 st.success("Image generation complete!")
-                st.image(output, caption="Generated Image", use_column_width=True)
+                st.session_state.generated_image_url = output
+                st.session_state.generated_image = st.image(output, caption="Generated Image", use_column_width=True)
 
                 # Download button
                 response = requests.get(output)
                 if response.status_code == 200:
                     img_data = response.content
-                    st.download_button(
+                    st.session_state.generated_image_data = img_data
+                    st.session_state.download_button = st.download_button(
                         label="💾 Download Generated Image",
                         data=img_data,
                         file_name="generated_image.png",
@@ -112,49 +146,7 @@ if st.button("🎨 Generate Image"):
                     st.error("Failed to retrieve the generated image.")
 
                 # Upscale option
-                if st.button("✨ Upscale Image"):
-                    with st.spinner("Upscaling image..."):
-                        # Read the image data
-                        data = base64.b64encode(img_data).decode("utf-8")
-                        input_file = f"data:image/png;base64,{data}"
-
-                        # Use the same workflow_json as in the upscaler
-                        workflow_json = """<Your Workflow JSON Here>"""
-
-                        upscaled_output = replicate.run(
-                            "fofr/any-comfyui-workflow:ca6589497a1d31922ec4e2b7c4d17d4a168bc6ac6d0971b2c8c60fc3de0fee4b",
-                            input={
-                                "input_file": input_file,
-                                "output_format": "png",
-                                "workflow_json": workflow_json,
-                                "output_quality": 100,
-                                "randomise_seeds": True,
-                                "force_reset_cache": False,
-                                "return_temp_files": True,
-                            },
-                        )
-
-                        if upscaled_output and isinstance(upscaled_output, list):
-                            upscaled_url = upscaled_output[0]
-                            st.success("Upscaling complete!")
-                            st.image(
-                                upscaled_url, caption="Upscaled Image", use_column_width=True
-                            )
-
-                            # Download upscaled image
-                            response = requests.get(upscaled_url)
-                            if response.status_code == 200:
-                                upscaled_img_data = response.content
-                                st.download_button(
-                                    label="💾 Download Upscaled Image",
-                                    data=upscaled_img_data,
-                                    file_name="upscaled_image.png",
-                                    mime="image/png",
-                                )
-                            else:
-                                st.error("Failed to retrieve the upscaled image.")
-                        else:
-                            st.error("Failed to upscale the image.")
+                st.session_state.show_upscale_button = True
 
             else:
                 st.error("Failed to generate the image.")
@@ -165,3 +157,72 @@ if st.button("🎨 Generate Image"):
             st.error(f"An error occurred: {str(e)}")
 else:
     st.info("Enter a prompt and adjust settings to generate an image.")
+
+# Upscale button (outside the Generate Image button block)
+if st.session_state.get('show_upscale_button', False):
+    if st.button("✨ Upscale Image"):
+        with st.spinner("Upscaling image..."):
+            try:
+                # Read the image data
+                img_data = st.session_state.generated_image_data
+                data = base64.b64encode(img_data).decode("utf-8")
+                input_file = f"data:image/png;base64,{data}"
+
+                # Get the workflow_json from workflow.py
+                workflow_json = get_workflow_json()
+
+                output = replicate.run(
+                    "fofr/any-comfyui-workflow:ca6589497a1d31922ec4e2b7c4d17d4a168bc6ac6d0971b2c8c60fc3de0fee4b",
+                    input={
+                        "input_file": input_file,
+                        "output_format": "png",
+                        "workflow_json": workflow_json,
+                        "output_quality": 100,
+                        "randomise_seeds": True,
+                        "force_reset_cache": False,
+                        "return_temp_files": True,
+                    },
+                )
+
+                # Output is a list of URLs
+                if output and isinstance(output, list):
+                    output_url = output[0]
+                    st.success("Upscaling complete!")
+                    
+                    # Use image_comparison widget
+                    image_comparison(
+                        img1=st.session_state.generated_image_url,
+                        img2=output_url,
+                        label1="Original Image",
+                        label2="Upscaled Image",
+                        width=700
+                    )
+
+                    # Download buttons for both images
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.download_button(
+                            label="💾 Download Original Image",
+                            data=st.session_state.generated_image_data,
+                            file_name="original_image.png",
+                            mime="image/png",
+                        )
+                    with col2:
+                        response = requests.get(output_url)
+                        if response.status_code == 200:
+                            upscaled_img_data = response.content
+                            st.download_button(
+                                label="💾 Download Upscaled Image",
+                                data=upscaled_img_data,
+                                file_name="upscaled_image.png",
+                                mime="image/png",
+                            )
+                        else:
+                            st.error("Failed to retrieve the upscaled image.")
+                else:
+                    st.error("Failed to upscale the image.")
+
+            except replicate.exceptions.ModelError as e:
+                st.error(f"Model Error: {str(e)}")
+            except Exception as e:
+                st.error(f"An error occurred: {str(e)}")

@@ -2,3 +2,8 @@ streamlit
 replicate
 requests
 streamlit-extras
+aiohttp
+pandas
+serpapi
+beautifulsoup4
+lxml
