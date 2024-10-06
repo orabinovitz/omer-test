@@ -49,9 +49,6 @@ tools = [
     },
 ]
 
-# Create columns for the cards
-cols = st.columns(len(tools))
-
 # Function to create a card with a clickable action
 def create_card(tool):
     clicked = card(
@@ -63,26 +60,75 @@ def create_card(tool):
                 "background-color": "#1e2d41",
                 "color": "#ceeafd",
                 "border-radius": "15px",
-                "padding": "20px",
+                "padding": "30px",
                 "text-align": "center",
                 "cursor": "pointer",
-                "height": "250px",
+                "height": "100%",  # Changed to 100% to fill the column
                 "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
                 "transition": "all 0.3s ease",
+                "display": "flex",
+                "flex-direction": "column",
+                "justify-content": "center",
+                "align-items": "center",
             },
             "title": {
                 "font-size": "1.5rem",
                 "margin-bottom": "10px",
+                "word-wrap": "break-word",
+                "max-width": "100%",
             },
             "text": {
                 "font-size": "1rem",
+                "word-wrap": "break-word",
+                "max-width": "100%",
             },
         },
     )
     if clicked:
         switch_page(tool["page"])
 
+# Responsive layout
+col1, col2, col3 = st.columns([1, 1, 1])
+
 # Display tool cards
 for idx, tool in enumerate(tools):
-    with cols[idx]:
+    with [col1, col2, col3][idx]:
         create_card(tool)
+
+# Add custom CSS for responsiveness
+st.markdown("""
+<style>
+    /* Default styles for horizontal layout */
+    .stHorizontalBlock {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+    }
+    .stHorizontalBlock > div {
+        flex: 1;
+    }
+    
+    /* Responsive styles for vertical layout */
+    @media (max-width: 1200px) {
+        .stHorizontalBlock {
+            flex-direction: column;
+            gap: 0;
+        }
+        .stHorizontalBlock > div {
+            width: 100% !important;
+        }
+        /* Target the specific elements that wrap our cards */
+        .stHorizontalBlock > div > div > div {
+            margin-bottom: 0.5rem !important;
+        }
+        /* Remove extra padding from column containers */
+        .css-1r6slb0 {
+            padding: 0 !important;
+        }
+        /* Adjust card container spacing */
+        .css-1r6slb0 > div {
+            margin-bottom: 0.5rem !important;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)

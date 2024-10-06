@@ -5,6 +5,9 @@ import base64
 import replicate
 import requests
 import toml
+from streamlit_image_comparison import image_comparison
+from PIL import Image
+import io
 
 # Add the parent directory to sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,11 +41,19 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
+    # Open the uploaded image using Pillow
+    image = Image.open(uploaded_file)
+    
     # Display the uploaded image
-    st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Read the file and encode it as a data URI
-    data = base64.b64encode(uploaded_file.read()).decode("utf-8")
+    # Convert the image to bytes
+    img_byte_arr = io.BytesIO()
+    image.save(img_byte_arr, format='PNG')
+    img_byte_arr = img_byte_arr.getvalue()
+
+    # Encode the image as a data URI
+    data = base64.b64encode(img_byte_arr).decode("utf-8")
     input_file = f"data:image/png;base64,{data}"
 
     if st.button("✨ Upscale Image"):
@@ -65,22 +76,37 @@ if uploaded_file is not None:
                 if output and isinstance(output, list):
                     output_url = output[0]
                     st.success("Upscaling complete!")
-                    st.image(
-                        output_url, caption="Upscaled Image", use_column_width=True
+                    
+                    # Use image_comparison widget
+                    image_comparison(
+                        img1=image,
+                        img2=output_url,
+                        label1="Original Image",
+                        label2="Upscaled Image",
+                        width=700
                     )
 
-                    # Download button
-                    response = requests.get(output_url)
-                    if response.status_code == 200:
-                        img_data = response.content
+                    # Download buttons for both images
+                    col1, col2 = st.columns(2)
+                    with col1:
                         st.download_button(
-                            label="💾 Download Upscaled Image",
-                            data=img_data,
-                            file_name="upscaled_image.png",
+                            label="💾 Download Original Image",
+                            data=img_byte_arr,
+                            file_name="original_image.png",
                             mime="image/png",
                         )
-                    else:
-                        st.error("Failed to retrieve the upscaled image.")
+                    with col2:
+                        response = requests.get(output_url)
+                        if response.status_code == 200:
+                            upscaled_img_data = response.content
+                            st.download_button(
+                                label="💾 Download Upscaled Image",
+                                data=upscaled_img_data,
+                                file_name="upscaled_image.png",
+                                mime="image/png",
+                            )
+                        else:
+                            st.error("Failed to retrieve the upscaled image.")
                 else:
                     st.error("Failed to upscale the image.")
 

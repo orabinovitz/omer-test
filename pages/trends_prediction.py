@@ -14,6 +14,7 @@ import subprocess
 import toml
 import pandas as pd
 from serpapi import GoogleSearch
+from bs4 import BeautifulSoup
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
