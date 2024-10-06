@@ -7,3 +7,4 @@ pandas
 serpapi
 beautifulsoup4
 lxml
+google-search-results

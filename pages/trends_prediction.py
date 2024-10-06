@@ -13,14 +13,7 @@ import sys
 import subprocess
 import toml
 import pandas as pd
-
-# Install serpapi if not already installed
-try:
-    from serpapi import GoogleSearch
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "google-search-results"])
-    from serpapi import GoogleSearch
-
+from serpapi import GoogleSearch
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
