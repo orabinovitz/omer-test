@@ -1,6 +1,11 @@
 # pages/trends_prediction.py
 
 import streamlit as st
+from auth import check_auth
+
+# Check authentication
+check_auth()
+
 import os
 import json
 import requests
