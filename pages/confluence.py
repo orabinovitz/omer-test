@@ -8,10 +8,6 @@ from io import BytesIO
 import toml
 import traceback  # Add this import
 from difflib import get_close_matches  # Add this import
-from auth import check_auth
-
-# Check authentication
-check_auth()
 
 # Load secrets
 secrets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".streamlit", "secrets.toml")

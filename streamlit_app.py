@@ -1,8 +1,3 @@
-from auth import check_auth
-
-# Check authentication
-check_auth()
-
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.card import card

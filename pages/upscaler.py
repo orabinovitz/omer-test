@@ -8,10 +8,6 @@ import toml
 from streamlit_image_comparison import image_comparison
 from PIL import Image
 import io
-from auth import check_auth
-
-# Check authentication
-check_auth()
 
 # Add the parent directory to sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
