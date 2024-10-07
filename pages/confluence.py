@@ -6,6 +6,8 @@ from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 from io import BytesIO
 import toml
+import traceback  # Add this import
+from difflib import get_close_matches  # Add this import
 
 # Load secrets
 secrets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".streamlit", "secrets.toml")
@@ -137,6 +139,14 @@ def download_image(url):
         st.error(f"Failed to download image. Status Code: {response.status_code}, Response: {response.text}")
         return None
 
+def find_closest_matches(suggestions, options, n=1):
+    closest_matches = []
+    for suggestion in suggestions:
+        matches = get_close_matches(suggestion, options, n=n, cutoff=0.6)
+        if matches:
+            closest_matches.extend(matches)
+    return list(set(closest_matches))  # Remove duplicates
+
 def main():
     st.title("Campaign Image Finder")
 
@@ -243,10 +253,14 @@ def main():
                     if not selected_brands:
                         st.error("Failed to get brand suggestions.")
                         st.stop()
+                    
                     selected_brands_list = [brand.strip() for brand in selected_brands.split(',')]
 
+                    # Find closest matches in brand_names
+                    closest_matches = find_closest_matches(selected_brands_list, brand_names)
+
                     # Allow the user to select brands
-                    selected_brands_list = st.multiselect("Select brands to display:", brand_names, default=selected_brands_list)
+                    selected_brands_list = st.multiselect("Select brands to display:", brand_names, default=closest_matches)
                     if not selected_brands_list:
                         st.error("Please select at least one brand.")
                         st.stop()
@@ -315,6 +329,13 @@ def main():
                             st.error(f"Failed to retrieve image for {selected_row['brand']}.")
                 except Exception as e:
                     st.error("An error occurred. Please try again or contact support if the problem persists.")
+                    st.write("Error details:")
+                    st.write(f"GPT response: {selected_brands}")
+                    st.write(f"GPT suggested brands: {selected_brands_list}")
+                    st.write(f"Closest matches found: {closest_matches}")
+                    st.write(f"Error message: {str(e)}")
+                    st.write("Traceback:")
+                    st.code(traceback.format_exc())
 
 if __name__ == "__main__":
     main()
