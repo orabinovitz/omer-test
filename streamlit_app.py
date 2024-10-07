@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.card import card
+import math
 
 # Set page configuration
 st.set_page_config(
@@ -36,8 +37,8 @@ tools = [
         "description": "Enhance image resolution",
     },
     {
-        "name": "Flux Pro",  # Changed from "Flux Pro 1.1"
-        "page": "Flux Pro",  # Changed from "Flux Pro 1.1"
+        "name": "Flux Pro",
+        "page": "Flux Pro",
         "icon": "🎨",
         "description": "Advanced image generation",
     },
@@ -46,6 +47,12 @@ tools = [
         "page": "Trends Prediction",
         "icon": "📈",
         "description": "Predict and analyze trends",
+    },
+    {
+        "name": "Confluence",
+        "page": "confluence",
+        "icon": "🔗",
+        "description": "Find campaign images",
     },
 ]
 
@@ -87,13 +94,19 @@ def create_card(tool):
     if clicked:
         switch_page(tool["page"])
 
-# Responsive layout
-col1, col2, col3 = st.columns([1, 1, 1])
+# Calculate the number of rows and columns
+num_tools = len(tools)
+num_columns = 3
+num_rows = math.ceil(num_tools / num_columns)
 
-# Display tool cards
-for idx, tool in enumerate(tools):
-    with [col1, col2, col3][idx]:
-        create_card(tool)
+# Create a grid layout
+for row in range(num_rows):
+    cols = st.columns(num_columns)
+    for col in range(num_columns):
+        tool_index = row * num_columns + col
+        if tool_index < num_tools:
+            with cols[col]:
+                create_card(tools[tool_index])
 
 # Add custom CSS for responsiveness
 st.markdown("""
