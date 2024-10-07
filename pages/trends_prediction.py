@@ -60,10 +60,11 @@ if 'trend_summaries' not in st.session_state:
 if 'filtered_trends' not in st.session_state:
     st.session_state['filtered_trends'] = []
 
+# Set search_term to always be "trend"
+search_term = "trend"
+
 # User Inputs
 st.sidebar.header("Search Parameters")
-
-search_term = st.sidebar.text_input("Search Term", value="trend", help="Enter the term you want to search trends for.")
 
 date_option = st.sidebar.selectbox(
     "Date Range",
@@ -127,8 +128,8 @@ if st.sidebar.button("🔍 Run Analysis"):
 
     if st.session_state['trends_list']:
         st.success(f"Found {len(st.session_state['trends_list'])} trends.")
-        st.write("### Initial Trends")
-        st.table(pd.DataFrame(st.session_state['trends_list'], columns=["Trend"]))
+        with st.expander("Initial Trends", expanded=False):
+            st.table(pd.DataFrame(st.session_state['trends_list'], columns=["Trend"]))
     else:
         st.warning("No trends found.")
         st.stop()
@@ -173,8 +174,8 @@ Here is the list to analyze: {st.session_state['trends_list']}"""
             st.error("Error processing trends with GPT.")
             st.stop()
 
-    st.write("### Processed Trends")
-    st.table(pd.DataFrame(st.session_state['processed_trends'], columns=["Trend"]))
+    with st.expander("Processed Trends", expanded=False):
+        st.table(pd.DataFrame(st.session_state['processed_trends'], columns=["Trend"]))
 
     # Summarize content for each trend
     async def summarize_trend(trend):
@@ -261,9 +262,9 @@ Provide only the JSON object, without any additional text or explanation."""
         loop.close()
         st.success("Summaries generated.")
 
-    st.write("### Trend Summaries")
-    summaries_df = pd.DataFrame(st.session_state['trend_summaries'])
-    st.table(summaries_df)
+    with st.expander("Trend Summaries", expanded=False):
+        summaries_df = pd.DataFrame(st.session_state['trend_summaries'])
+        st.table(summaries_df)
 
     # Filter trends with GPT
     with st.spinner("Filtering trends for Facetune..."):
@@ -302,7 +303,7 @@ Provide only the JSON object, without any additional text or explanation."""
             st.stop()
 
     if st.session_state['filtered_trends']:
-        st.write("### Filtered Trends for Facetune")
+        st.write("### Relevant Marketing Trends for Facetune")
         filtered_df = pd.DataFrame(st.session_state['filtered_trends'])
         st.table(filtered_df)
     else:
