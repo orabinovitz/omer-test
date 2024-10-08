@@ -5,6 +5,9 @@ import replicate
 import requests
 import base64
 import toml
+import io
+import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from streamlit_image_comparison import image_comparison
 
 # Add the parent directory to sys.path
@@ -22,11 +25,6 @@ st.set_page_config(
     layout="centered",
 )
 
-# Add the parent directory to sys.path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
 st.title("🎨 Flux Pro 1.1")
 
 # Get the API key from Streamlit secrets
@@ -42,10 +40,53 @@ st.markdown(
     <style>
     footer {visibility: hidden;}
     .aspect-ratio-selectbox {width: 200px;}
+    /* Modal styles */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        padding-top: 60px; 
+        left: 0;
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.9); 
+    }
+    .modal-content {
+        margin: auto;
+        display: block;
+        width: 80%;
+        max-width: 700px;
+    }
+    .close {
+        position: absolute;
+        top: 30px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+        z-index: 1001;
+    }
+    .close:hover,
+    .close:focus {
+        color: #bbb;
+        text-decoration: none;
+        cursor: pointer;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+# Initialize session state variables
+if 'generated_image_urls' not in st.session_state:
+    st.session_state.generated_image_urls = []
+if 'generated_image_data' not in st.session_state:
+    st.session_state.generated_image_data = []
+if 'show_upscale_button' not in st.session_state:
+    st.session_state.show_upscale_button = False
 
 # Prompt input
 prompt = st.text_area("Enter your prompt", height=100)
@@ -112,9 +153,12 @@ else:
 # Prompt upsampling toggle
 prompt_upsampling = st.checkbox("Enable Prompt Upsampling", value=True)
 
+# Number of images slider
+num_images = st.slider("Number of images to generate", min_value=1, max_value=10, value=1)
+
 # Generate button
-if st.button("🎨 Generate Image"):
-    with st.spinner("Generating image..."):
+if st.button("🎨 Generate Images"):
+    with st.spinner("Generating images..."):
         try:
             # Determine the correct aspect ratio string for the API
             if selected_ratio == "Custom":
@@ -126,118 +170,193 @@ if st.button("🎨 Generate Image"):
             else:
                 api_aspect_ratio = selected_ratio
 
-            output = replicate.run(
-                "black-forest-labs/flux-1.1-pro",
-                input={
-                    "width": width,
-                    "height": height,
-                    "prompt": prompt,
-                    "aspect_ratio": api_aspect_ratio,
-                    "output_format": "png",
-                    "output_quality": 100,
-                    "safety_tolerance": 5,
-                    "prompt_upsampling": prompt_upsampling,
-                },
-            )
+            # Function to generate a single image
+            def generate_image_call():
+                output = replicate.run(
+                    "black-forest-labs/flux-1.1-pro",
+                    input={
+                        "width": width,
+                        "height": height,
+                        "prompt": prompt,
+                        "aspect_ratio": api_aspect_ratio,
+                        "output_format": "png",
+                        "output_quality": 100,
+                        "safety_tolerance": 5,
+                        "prompt_upsampling": prompt_upsampling,
+                    },
+                )
+                return output
 
-            if output and isinstance(output, str):
+            # Use ThreadPoolExecutor to run multiple API calls concurrently
+            with ThreadPoolExecutor() as executor:
+                futures = [executor.submit(generate_image_call) for _ in range(num_images)]
+                outputs = [future.result() for future in futures]
+
+            # Check if outputs are valid
+            if outputs and all(isinstance(output, str) for output in outputs):
                 st.success("Image generation complete!")
-                st.session_state.generated_image_url = output
-                st.session_state.generated_image = st.image(output, caption="Generated Image", use_column_width=True)
+                st.session_state.generated_image_urls = outputs
 
-                # Download button
-                response = requests.get(output)
-                if response.status_code == 200:
-                    img_data = response.content
-                    st.session_state.generated_image_data = img_data
-                    st.session_state.download_button = st.download_button(
-                        label="💾 Download Generated Image",
-                        data=img_data,
-                        file_name="generated_image.png",
-                        mime="image/png",
-                    )
-                else:
-                    st.error("Failed to retrieve the generated image.")
+                # Store the generated image data for download
+                st.session_state.generated_image_data = []
+                for image_url in outputs:
+                    response = requests.get(image_url)
+                    if response.status_code == 200:
+                        img_data = response.content
+                        st.session_state.generated_image_data.append(img_data)
+                    else:
+                        st.error(f"Failed to retrieve the generated image at {image_url}.")
+
+                # Show download button for all images
+                zip_file = io.BytesIO()
+                with zipfile.ZipFile(zip_file, 'w') as zipf:
+                    for idx, img_data in enumerate(st.session_state.generated_image_data):
+                        zipf.writestr(f"generated_image_{idx+1}.png", img_data)
+                zip_file.seek(0)
+                st.download_button(
+                    label="💾 Download All Generated Images",
+                    data=zip_file,
+                    file_name="generated_images.zip",
+                    mime="application/zip",
+                )
 
                 # Upscale option
                 st.session_state.show_upscale_button = True
 
             else:
-                st.error("Failed to generate the image.")
+                st.error("Failed to generate the images.")
 
         except replicate.exceptions.ModelError as e:
             st.error(f"Model Error: {str(e)}")
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 else:
-    st.info("Enter a prompt and adjust settings to generate an image.")
+    st.info("Enter a prompt and adjust settings to generate images.")
 
-# Upscale button (outside the Generate Image button block)
+# Display generated images if available
+if st.session_state.generated_image_urls:
+    # Display images in a grid
+    num_cols = 3  # Number of columns in the grid
+    image_urls = st.session_state.generated_image_urls
+    st.subheader("Generated Images")
+    rows = [image_urls[i:i + num_cols] for i in range(0, len(image_urls), num_cols)]
+    for row_idx, row in enumerate(rows):
+        cols = st.columns(num_cols)
+        for idx, image_url in enumerate(row):
+            col = cols[idx]
+            # Generate a safe key using the index
+            image_idx = row_idx * num_cols + idx
+            # Create an HTML block with a modal popup
+            html_code = f'''
+            <div>
+                <a href="#modal-{image_idx}">
+                    <img src="{image_url}" style="width:100%; height:auto; cursor: pointer;"/>
+                </a>
+                <div id="modal-{image_idx}" class="modal">
+                    <span class="close" onclick="document.getElementById('modal-{image_idx}').style.display='none'">&times;</span>
+                    <img class="modal-content" src="{image_url}">
+                </div>
+            </div>
+            <script>
+                var modal = document.getElementById("modal-{image_idx}");
+                var img = document.querySelector("img[src='{image_url}']");
+                img.onclick = function() {{
+                    modal.style.display = "block";
+                }}
+            </script>
+            '''
+            col.markdown(html_code, unsafe_allow_html=True)
+            # Add a checkbox for selecting the image to upscale
+            col.checkbox("Select for Upscaling", key=f"select_{image_idx}")
+
+# Upscale button
 if st.session_state.get('show_upscale_button', False):
-    if st.button("✨ Upscale Image"):
-        with st.spinner("Upscaling image..."):
-            try:
-                # Read the image data
-                img_data = st.session_state.generated_image_data
-                data = base64.b64encode(img_data).decode("utf-8")
-                input_file = f"data:image/png;base64,{data}"
+    if st.button("✨ Upscale Selected Images"):
+        # Collect selected images
+        selected_indices = [idx for idx in range(len(st.session_state.generated_image_urls)) if st.session_state.get(f"select_{idx}", False)]
+        if not selected_indices:
+            st.warning("Please select at least one image to upscale.")
+        else:
+            with st.spinner("Upscaling images..."):
+                try:
+                    # Collect the image data for selected images
+                    selected_image_data = [st.session_state.generated_image_data[idx] for idx in selected_indices]
+                    selected_image_urls = [st.session_state.generated_image_urls[idx] for idx in selected_indices]
 
-                # Get the workflow_json from workflow.py
-                workflow_json = get_workflow_json()
+                    # Function to upscale a single image
+                    def upscale_image(image_data):
+                        data = base64.b64encode(image_data).decode("utf-8")
+                        input_file = f"data:image/png;base64,{data}"
 
-                output = replicate.run(
-                    "fofr/any-comfyui-workflow:ca6589497a1d31922ec4e2b7c4d17d4a168bc6ac6d0971b2c8c60fc3de0fee4b",
-                    input={
-                        "input_file": input_file,
-                        "output_format": "png",
-                        "workflow_json": workflow_json,
-                        "output_quality": 100,
-                        "randomise_seeds": True,
-                        "force_reset_cache": False,
-                        "return_temp_files": True,
-                    },
-                )
+                        # Get the workflow_json from workflow.py
+                        workflow_json = get_workflow_json()
 
-                # Output is a list of URLs
-                if output and isinstance(output, list):
-                    output_url = output[0]
-                    st.success("Upscaling complete!")
-                    
-                    # Use image_comparison widget
-                    image_comparison(
-                        img1=st.session_state.generated_image_url,
-                        img2=output_url,
-                        label1="Original Image",
-                        label2="Upscaled Image",
-                        width=700
-                    )
-
-                    # Download buttons for both images
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.download_button(
-                            label="💾 Download Original Image",
-                            data=st.session_state.generated_image_data,
-                            file_name="original_image.png",
-                            mime="image/png",
+                        output = replicate.run(
+                            "fofr/any-comfyui-workflow:ca6589497a1d31922ec4e2b7c4d17d4a168bc6ac6d0971b2c8c60fc3de0fee4b",
+                            input={
+                                "input_file": input_file,
+                                "output_format": "png",
+                                "workflow_json": workflow_json,
+                                "output_quality": 100,
+                                "randomise_seeds": True,
+                                "force_reset_cache": False,
+                                "return_temp_files": True,
+                            },
                         )
-                    with col2:
-                        response = requests.get(output_url)
-                        if response.status_code == 200:
-                            upscaled_img_data = response.content
-                            st.download_button(
-                                label="💾 Download Upscaled Image",
-                                data=upscaled_img_data,
-                                file_name="upscaled_image.png",
-                                mime="image/png",
-                            )
-                        else:
-                            st.error("Failed to retrieve the upscaled image.")
-                else:
-                    st.error("Failed to upscale the image.")
+                        return output
 
-            except replicate.exceptions.ModelError as e:
-                st.error(f"Model Error: {str(e)}")
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-                
+                    # Use ThreadPoolExecutor to run multiple upscaling calls concurrently
+                    with ThreadPoolExecutor() as executor:
+                        futures = [executor.submit(upscale_image, image_data) for image_data in selected_image_data]
+                        upscaled_outputs = [future.result() for future in futures]
+
+                    # Output is a list of lists of URLs (since the upscaling output is a list)
+                    upscaled_image_urls = []
+                    for output in upscaled_outputs:
+                        if output and isinstance(output, list):
+                            upscaled_image_urls.append(output[0])  # Get the first URL
+                        else:
+                            upscaled_image_urls.append(None)  # Or handle errors appropriately
+
+                    # Display the upscaled images along with originals
+                    st.success("Upscaling complete!")
+                    for idx, (original_idx, upscaled_url) in enumerate(zip(selected_indices, upscaled_image_urls)):
+                        st.write(f"Image {original_idx+1}")
+                        original_url = st.session_state.generated_image_urls[original_idx]
+                        if upscaled_url:
+                            image_comparison(
+                                img1=original_url,
+                                img2=upscaled_url,
+                                label1="Original Image",
+                                label2="Upscaled Image",
+                                width=700
+                            )
+                            # Download buttons for both images
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                orig_data = st.session_state.generated_image_data[original_idx]
+                                st.download_button(
+                                    label="💾 Download Original Image",
+                                    data=orig_data,
+                                    file_name=f"original_image_{original_idx+1}.png",
+                                    mime="image/png",
+                                )
+                            with col2:
+                                response = requests.get(upscaled_url)
+                                if response.status_code == 200:
+                                    upscaled_img_data = response.content
+                                    st.download_button(
+                                        label="💾 Download Upscaled Image",
+                                        data=upscaled_img_data,
+                                        file_name=f"upscaled_image_{original_idx+1}.png",
+                                        mime="image/png",
+                                    )
+                                else:
+                                    st.error("Failed to retrieve the upscaled image.")
+                        else:
+                            st.error("Failed to upscale the image.")
+
+                except replicate.exceptions.ModelError as e:
+                    st.error(f"Model Error: {str(e)}")
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
