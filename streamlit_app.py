@@ -54,6 +54,18 @@ tools = [
         "icon": "🔗",
         "description": "Find campaign images",
     },
+    {
+        "name": "Popular Keywords",
+        "page": "popular_keywords",
+        "icon": "🔑",
+        "description": "ASO keyword recommendations",
+    },
+    {
+        "name": "UI Frame Generator",
+        "page": "ui_frames",
+        "icon": "📱",
+        "description": "Generate UI frames",
+    },
 ]
 
 # Function to create a card with a clickable action

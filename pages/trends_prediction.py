@@ -16,7 +16,7 @@ import pandas as pd
 from serpapi.google_search import GoogleSearch
 from bs4 import BeautifulSoup
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Set page configuration
 st.set_page_config(
@@ -119,18 +119,24 @@ if st.sidebar.button("🔍 Run Analysis"):
             "geo": geo_code,
             "api_key": serpapi_key,
         }
+        logging.info(f"Sending request to SerpAPI with params: {search_params}")
         search = GoogleSearch(search_params)
         result = search.get_dict()
+        logging.info(f"Received response from SerpAPI: {result}")
 
         if 'related_queries' in result:
             rising_queries = result['related_queries'].get('rising', [])
             st.session_state['trends_list'] = [query['query'] for query in rising_queries]
+            logging.info(f"Found {len(st.session_state['trends_list'])} trends")
+        else:
+            logging.warning("No 'related_queries' found in the API response")
 
     if st.session_state['trends_list']:
         st.success(f"Found {len(st.session_state['trends_list'])} trends.")
         with st.expander("Initial Trends", expanded=False):
             st.table(pd.DataFrame(st.session_state['trends_list'], columns=["Trend"]))
     else:
+        logging.error("No trends found in the API response")
         st.warning("No trends found.")
         st.stop()
 

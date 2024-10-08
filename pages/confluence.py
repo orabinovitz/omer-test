@@ -9,6 +9,16 @@ import toml
 import traceback  # Add this import
 from difflib import get_close_matches  # Add this import
 
+# Set page configuration
+st.set_page_config(
+    page_title="🔗 Campaign Image Finder",
+    page_icon="🔗",
+    layout="centered",
+)
+
+# Title is now set only once, in the page config
+st.title("🔗 Campaign Image Finder")
+
 # Load secrets
 secrets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".streamlit", "secrets.toml")
 with open(secrets_path, "r") as f:
@@ -148,8 +158,6 @@ def find_closest_matches(suggestions, options, n=1):
     return list(set(closest_matches))  # Remove duplicates
 
 def main():
-    st.title("Campaign Image Finder")
-
     # Check that all secrets are set
     check_secrets()
 
