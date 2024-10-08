@@ -59,7 +59,7 @@ selected_ratio = st.selectbox("Aspect Ratio", aspect_ratios, index=0)
 if selected_ratio != "1:1":
     orientation = st.radio(
         "Orientation",
-        ("Horizontal", "Vertical"),
+        ("Landscape", "Portrait"),
         horizontal=True,
         help="Select the orientation of the image",
     )
@@ -85,17 +85,21 @@ else:
         "4:5": (4, 5),
     }
     ratio = ratio_map[selected_ratio]
-    if orientation == "Vertical":
-        ratio = (ratio[1], ratio[0])
     
-    # Calculate dimensions based on the maximum allowed width or height
+    # Calculate dimensions based on the maximum allowed dimension (1440)
     max_dimension = 1440
-    if ratio[0] > ratio[1]:
+    if orientation == "Landscape" or (selected_ratio == "1:1" and ratio[0] >= ratio[1]):
         width = max_dimension
         height = int(width * ratio[1] / ratio[0])
-    else:
+        if height > max_dimension:
+            height = max_dimension
+            width = int(height * ratio[0] / ratio[1])
+    else:  # Portrait orientation
         height = max_dimension
         width = int(height * ratio[0] / ratio[1])
+        if width > max_dimension:
+            width = max_dimension
+            height = int(width * ratio[1] / ratio[0])
     
     # Ensure minimum dimension is at least 256
     if width < 256:
@@ -112,13 +116,23 @@ prompt_upsampling = st.checkbox("Enable Prompt Upsampling", value=True)
 if st.button("🎨 Generate Image"):
     with st.spinner("Generating image..."):
         try:
+            # Determine the correct aspect ratio string for the API
+            if selected_ratio == "Custom":
+                api_aspect_ratio = "custom"
+            elif orientation == "Portrait" and selected_ratio != "1:1":
+                # Invert the aspect ratio for portrait orientation
+                w, h = selected_ratio.split(":")
+                api_aspect_ratio = f"{h}:{w}"
+            else:
+                api_aspect_ratio = selected_ratio
+
             output = replicate.run(
                 "black-forest-labs/flux-1.1-pro",
                 input={
                     "width": width,
                     "height": height,
                     "prompt": prompt,
-                    "aspect_ratio": selected_ratio if selected_ratio != "Custom" else "custom",
+                    "aspect_ratio": api_aspect_ratio,
                     "output_format": "png",
                     "output_quality": 100,
                     "safety_tolerance": 5,
@@ -226,3 +240,4 @@ if st.session_state.get('show_upscale_button', False):
                 st.error(f"Model Error: {str(e)}")
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
+                
