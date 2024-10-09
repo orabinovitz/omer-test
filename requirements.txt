@@ -10,3 +10,10 @@ lxml
 streamlit-image-comparison
 streamlit-image-select
 google-search-results
+openai
+anthropic
+sentence_transformers
+faiss-cpu
+numpy
+toml
+pydantic
