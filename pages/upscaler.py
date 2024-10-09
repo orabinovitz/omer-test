@@ -15,7 +15,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 # Now import the workflow module
-from pages.utils.workflow import get_workflow_json
+from pages.utils.upscale_workflow import get_workflow_json
 
 # Set page configuration
 st.set_page_config(

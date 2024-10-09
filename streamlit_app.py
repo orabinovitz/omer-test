@@ -17,9 +17,22 @@ st.markdown(
     footer {visibility: hidden;}
     .main-header {
         text-align: center;
-        color: #ceeafd;
+        color: var(--text-color);
         margin-bottom: 30px;
         font-size: 2.5rem;
+    }
+    /* Custom card styles */
+    .element-container .stCard {
+        background-color: #f0f2f6 !important;
+    }
+    .element-container .stCard:hover {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+    @media (prefers-color-scheme: dark) {
+        .element-container .stCard {
+            background-color: #2c3e50 !important;
+        }
     }
     </style>
     """,
@@ -66,9 +79,15 @@ tools = [
         "icon": "📱",
         "description": "Generate UI frames",
     },
+    {
+        "name": "App Review Analysis",
+        "page": "appstore_reviews",
+        "icon": "💬",
+        "description": "Analyze App Store reviews",
+    },
 ]
 
-# Function to create a card with a clickable action
+# Update the create_card function
 def create_card(tool):
     clicked = card(
         title=f"{tool['icon']} {tool['name']}",
@@ -76,19 +95,12 @@ def create_card(tool):
         key=tool['name'],
         styles={
             "card": {
-                "background-color": "#1e2d41",
-                "color": "#ceeafd",
                 "border-radius": "15px",
                 "padding": "30px",
                 "text-align": "center",
                 "cursor": "pointer",
-                "height": "100%",  # Changed to 100% to fill the column
-                "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+                "height": "100%",
                 "transition": "all 0.3s ease",
-                "display": "flex",
-                "flex-direction": "column",
-                "justify-content": "center",
-                "align-items": "center",
             },
             "title": {
                 "font-size": "1.5rem",
@@ -119,41 +131,3 @@ for row in range(num_rows):
         if tool_index < num_tools:
             with cols[col]:
                 create_card(tools[tool_index])
-
-# Add custom CSS for responsiveness
-st.markdown("""
-<style>
-    /* Default styles for horizontal layout */
-    .stHorizontalBlock {
-        display: flex;
-        flex-direction: row;
-        gap: 1rem;
-    }
-    .stHorizontalBlock > div {
-        flex: 1;
-    }
-    
-    /* Responsive styles for vertical layout */
-    @media (max-width: 1200px) {
-        .stHorizontalBlock {
-            flex-direction: column;
-            gap: 0;
-        }
-        .stHorizontalBlock > div {
-            width: 100% !important;
-        }
-        /* Target the specific elements that wrap our cards */
-        .stHorizontalBlock > div > div > div {
-            margin-bottom: 0.5rem !important;
-        }
-        /* Remove extra padding from column containers */
-        .css-1r6slb0 {
-            padding: 0 !important;
-        }
-        /* Adjust card container spacing */
-        .css-1r6slb0 > div {
-            margin-bottom: 0.5rem !important;
-        }
-    }
-</style>
-""", unsafe_allow_html=True)
