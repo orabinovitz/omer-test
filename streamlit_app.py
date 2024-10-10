@@ -104,6 +104,14 @@ tools = [
         "category": "Utilities",
         "keywords": ["qr", "code", "generator", "link", "url", "scan"],
     },
+    {
+        "name": "Translator",
+        "page": "translator",
+        "icon": "🌐",
+        "description": "Translate copy to multiple languages",
+        "category": "Utilities",
+        "keywords": ["translate", "language", "copy", "localization", "international"],
+    },
     # Add more tools as needed
 ]
 
