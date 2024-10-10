@@ -40,53 +40,65 @@ except KeyError:
     st.stop()
 
 # Set the parameters
-app_name = "facetune"
+ext_id = "1149994032"
 country = "us"
 
 # Build the API request URL and headers
-url = "https://api.appfollow.io/api/v2/aso/search_ads"
+url = "https://api.appfollow.io/api/v2/aso/keywords"
 headers = {
     'X-AppFollow-API-Token': api_token
 }
 params = {
-    'app': app_name,
+    'ext_id': ext_id,
     'country': country
 }
 
 # Make the API request
-with st.spinner('Fetching keyword recommendations...'):
+with st.spinner('Fetching keyword data...'):
     response = requests.get(url, headers=headers, params=params)
 
 # Check if request was successful
 if response.status_code == 200:
     data = response.json()
-    keywords = data['result']['keywords']
-    df = pd.DataFrame(keywords)
-    df = df.sort_values(by='scoring', ascending=False)
-    df.reset_index(drop=True, inplace=True)
     
-    # Add a slider for user to select percentage of top keywords
-    percentage = st.slider("Select percentage of top keywords to display", 1, 100, 15)
-    
-    # Calculate number of keywords based on selected percentage
-    num_keywords = max(int(len(df) * percentage / 100), 1)  # Ensure at least one keyword
-    top_keywords = df.head(num_keywords)
-    
-    # Display the table
-    st.subheader(f"Top {percentage}% Keywords by Popularity")
-    st.write(f"Displaying the top {num_keywords} keywords out of {len(df)} total.")
-    st.table(top_keywords)
+    if 'keywords' in data and 'list' in data['keywords']:
+        keywords = data['keywords']['list']
+        df = pd.DataFrame(keywords)
+        
+        # Select and rename columns
+        df = df[['kw', 'popularity', 'effectiveness', 'pos', 'difficulty']]
+        df.columns = ['Keyword', 'Popularity', 'Effectiveness', 'Ranking', 'Difficulty']
+        
+        # Sort by Popularity and Effectiveness
+        df = df.sort_values(by=['Popularity', 'Effectiveness'], ascending=[False, False])
+        df.reset_index(drop=True, inplace=True)
+        
+        # Add a slider for user to select percentage of top keywords
+        percentage = st.slider("Select percentage of top keywords to display", 1, 100, 5)
+        
+        # Calculate number of keywords based on selected percentage
+        num_keywords = max(int(len(df) * percentage / 100), 1)  # Ensure at least one keyword
+        top_keywords = df.head(num_keywords)
+        
+        # Display the table
+        st.subheader(f"Top {percentage}% Keywords (by popularity)")
+        st.write(f"Displaying the top {num_keywords} keywords out of {len(df)} total.")
+        st.dataframe(top_keywords, use_container_width=True)
 
-    # Provide download button for full list
-    csv = df.to_csv(index=False)
-    st.download_button(
-        label="📥 Download Full Keyword List as CSV",
-        data=csv,
-        file_name='keyword_list.csv',
-        mime='text/csv',
-    )
-    # Optionally, show the full keyword list in an expander
-    with st.expander("See full keyword list"):
-        st.dataframe(df)
+        # Provide download button for full list
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Full Keyword List as CSV",
+            data=csv,
+            file_name='keyword_list.csv',
+            mime='text/csv',
+        )
+        # Optionally, show the full keyword list in an expander
+        with st.expander("See full keyword list"):
+            st.dataframe(df, use_container_width=True)
+    else:
+        st.error("Error: Expected data structure not found in the API response")
+        st.stop()
 else:
     st.error(f"Error: {response.status_code} - {response.text}")
+    st.stop()

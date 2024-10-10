@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 st.set_page_config(
     page_title="Trends Prediction Tool",
     page_icon="📈",
-    layout="wide",
+    layout="centered",
 )
 
 st.title("📈 Trends Prediction Tool")

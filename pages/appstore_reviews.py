@@ -28,7 +28,7 @@ sys.path.append(parent_dir)
 st.set_page_config(
     page_title="App Review Analysis",
     page_icon="💬",
-    layout="wide",
+    layout="centered",
 )
 
 st.title("💬 App Review Analysis for Facetune")

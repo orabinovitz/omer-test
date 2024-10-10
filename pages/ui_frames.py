@@ -9,7 +9,7 @@ import cv2  # OpenCV for face detection
 from io import BytesIO
 
 # Set page config
-st.set_page_config(page_title="📱 UI Frame Generator", page_icon="📱", layout="wide")
+st.set_page_config(page_title="📱 UI Frame Generator", page_icon="📱", layout="centered")
 
 # Title is now set only once, in the page config
 # Remove the following line:

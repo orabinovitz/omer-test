@@ -1,133 +1,162 @@
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
-from streamlit_extras.card import card
 import math
+from collections import defaultdict
 
 # Set page configuration
 st.set_page_config(
     page_title="Marketing AI Lab",
     page_icon="🧬",
     layout="wide",
+    initial_sidebar_state="collapsed"  # Add this line
 )
 
-# Hide Streamlit footer and add custom CSS
+# Hide Streamlit footer, header, and main menu
 st.markdown(
     """
     <style>
+    #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    .main-header {
-        text-align: center;
-        color: var(--text-color);
-        margin-bottom: 30px;
-        font-size: 2.5rem;
-    }
-    /* Custom card styles */
-    .element-container .stCard {
-        background-color: #f0f2f6 !important;
-    }
-    .element-container .stCard:hover {
-        border-color: var(--primary-color) !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
-    }
-    @media (prefers-color-scheme: dark) {
-        .element-container .stCard {
-            background-color: #2c3e50 !important;
-        }
-    }
+    header {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.markdown("<h1 class='main-header'>🧬 Marketing AI Lab</h1>", unsafe_allow_html=True)
+# Add this near the top of your file, where you're setting other styles
+st.markdown("""
+    <style>
+    div.stButton > button {
+        width: 100%;
+        height: auto;
+        min-height: 75px;
+        white-space: normal;
+        text-align: center;
+        margin: 5px 0;
+        padding: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Define tools
+# Define tools with categories and hidden keywords
 tools = [
     {
         "name": "Upscaler",
         "page": "Upscaler",
         "icon": "🖼️",
         "description": "Enhance image resolution",
+        "category": "Creative Tools",
+        "keywords": ["image", "enhance", "upscale", "resolution", "images", "photo"],
     },
     {
         "name": "Flux Pro",
         "page": "Flux Pro",
         "icon": "🎨",
         "description": "Advanced image generation",
+        "category": "Creative Tools",
+        "keywords": ["image", "generation", "creative", "generate images", "flux"],
     },
     {
         "name": "Trends Prediction",
         "page": "Trends Prediction",
         "icon": "📈",
         "description": "Predict and analyze trends",
+        "category": "Strategic Tools",
+        "keywords": ["trends", "predict", "analyze", "analytics", "data", "strategic", "strategy"],
     },
     {
-        "name": "Confluence",
+        "name": "Campaign Image Finder",
         "page": "confluence",
         "icon": "🔗",
         "description": "Find campaign images",
+        "category": "Brands",
+        "keywords": ["campaign", "images", "brands", "popular pays", "popays", "overview", "confluence"],
     },
     {
         "name": "Popular Keywords",
         "page": "popular_keywords",
         "icon": "🔑",
         "description": "ASO keyword recommendations",
+        "category": "AppStore Tools",
+        "keywords": ["keywords", "aso", "appstore", "popular"],
     },
     {
         "name": "UI Frame Generator",
         "page": "ui_frames",
         "icon": "📱",
         "description": "Generate UI frames",
+        "category": "Creative Tools",
+        "keywords": ["ui", "frames", "design", "generate", "interface", "figma"],
     },
     {
         "name": "App Review Analysis",
         "page": "appstore_reviews",
         "icon": "💬",
         "description": "Analyze App Store reviews",
+        "category": "AppStore Tools",
+        "keywords": ["reviews", "analysis", "appstore", "feedback", "aso", "appfollow"],
     },
+    {
+        "name": "QR Code Generator",
+        "page": "qr_generator",
+        "icon": "🔲",
+        "description": "Generate QR codes from links",
+        "category": "Utilities",
+        "keywords": ["qr", "code", "generator", "link", "url", "scan"],
+    },
+    # Add more tools as needed
 ]
 
-# Update the create_card function
-def create_card(tool):
-    clicked = card(
-        title=f"{tool['icon']} {tool['name']}",
-        text=tool['description'],
-        key=tool['name'],
-        styles={
-            "card": {
-                "border-radius": "15px",
-                "padding": "30px",
-                "text-align": "center",
-                "cursor": "pointer",
-                "height": "100%",
-                "transition": "all 0.3s ease",
-            },
-            "title": {
-                "font-size": "1.5rem",
-                "margin-bottom": "10px",
-                "word-wrap": "break-word",
-                "max-width": "100%",
-            },
-            "text": {
-                "font-size": "1rem",
-                "word-wrap": "break-word",
-                "max-width": "100%",
-            },
-        },
-    )
-    if clicked:
-        switch_page(tool["page"])
+# Header
+st.markdown("<h1 style='text-align: center;'>🧬 Marketing AI Lab</h1>", unsafe_allow_html=True)
 
-# Calculate the number of rows and columns
-num_tools = len(tools)
-num_columns = 3
-num_rows = math.ceil(num_tools / num_columns)
+# Search bar
+search_query = st.text_input("🔍 Search for a tool...")
 
-# Create a grid layout
-for row in range(num_rows):
-    cols = st.columns(num_columns)
-    for col in range(num_columns):
-        tool_index = row * num_columns + col
-        if tool_index < num_tools:
-            with cols[col]:
-                create_card(tools[tool_index])
+# Category filter
+categories = sorted(set(tool['category'] for tool in tools))
+selected_categories = st.multiselect("Filter by Category", categories, default=categories)
+
+# Function to filter tools
+def filter_tools(tools, search_query, selected_categories):
+    filtered = []
+    for tool in tools:
+        if tool['category'] not in selected_categories:
+            continue
+        if search_query:
+            search_content = " ".join([
+                tool['name'],
+                tool['description'],
+                " ".join(tool['keywords'])
+            ]).lower()
+            if search_query.lower() not in search_content:
+                continue
+        filtered.append(tool)
+    return filtered
+
+filtered_tools = filter_tools(tools, search_query, selected_categories)
+
+# Group tools by category
+tools_by_category = defaultdict(list)
+for tool in filtered_tools:
+    tools_by_category[tool['category']].append(tool)
+
+# Update the display_tool function to remove the description
+def display_tool(tool):
+    if st.button(f"{tool['icon']} {tool['name']}", key=tool['name']):
+        switch_page(tool['page'])
+
+# Update the layout for displaying tools
+for category in selected_categories:
+    tools_in_category = tools_by_category.get(category, [])
+    if tools_in_category:
+        st.markdown(f"### {category}")
+        
+        # Use a more flexible column layout
+        cols = st.columns([1, 1, 1, 1])
+        
+        for i, tool in enumerate(tools_in_category):
+            with cols[i % 4]:
+                display_tool(tool)
+        
+        st.markdown("<br>", unsafe_allow_html=True)  # Add some vertical space between categories
