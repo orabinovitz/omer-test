@@ -112,6 +112,14 @@ tools = [
         "category": "Utilities",
         "keywords": ["translate", "language", "copy", "localization", "international"],
     },
+    {
+        "name": "Brainstorm",
+        "page": "brainstorm",
+        "icon": "💡",
+        "description": "Generate marketing ideas",
+        "category": "Strategic Tools",
+        "keywords": ["brainstorm", "ideas", "marketing", "creative", "generate", "campaign"],
+    },
     # Add more tools as needed
 ]
 
