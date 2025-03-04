@@ -1,75 +1,69 @@
-# 🧬 Marketing AI Lab
+# Deep Research - Flask Application
 
-Marketing AI Lab is a powerful suite of AI-powered tools designed to enhance your marketing efforts. This Streamlit app provides a user-friendly interface to access various marketing-related AI functionalities.
+This is a Flask-based application for conducting deep research on LinkedIn profiles and topics. The application allows you to enter LinkedIn profile URLs and a research topic, and then generates comprehensive reports, personalized emails, and LinkedIn messages.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://marketing-ai-lab.streamlit.app/)
+## Features
 
-## 🛠️ Features
+- Research topics using Perplexity API
+- Process LinkedIn profiles to extract information
+- Fetch recent LinkedIn posts for profiles
+- Generate comprehensive research reports
+- Create personalized emails and LinkedIn messages
+- Include relevant case studies in research
+- Download results as CSV
 
-The Marketing AI Lab includes the following tools:
+## Prerequisites
 
-1. **🖼️ Upscaler**: Enhance image resolution for better visual quality.
-2. **🎨 Flux Pro**: Advanced image generation tool for creating unique visuals.
-3. **📈 Trends Prediction**: Predict and analyze market trends to stay ahead of the curve.
-4. **🔗 Confluence**: Find and manage campaign images efficiently.
-5. **🔑 Popular Keywords**: Get ASO keyword recommendations to improve app visibility.
-6. **📱 UI Frame Generator**: Generate UI frames for app mockups and presentations.
+- Python 3.10 or higher
+- Required API keys (configured in `.env` file):
+  - OpenAI API key
+  - Perplexity API key
+  - Apify API key
+  - (Optional) Additional API keys as needed
 
-## 🚀 Getting Started
+## Installation
 
-To run the Marketing AI Lab on your local machine:
+1. Clone the repository
+2. Install dependencies:
 
-1. Clone this repository:
-   ```
-   git clone https://github.com/yourusername/marketing-ai-lab.git
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-2. Navigate to the project directory:
-   ```
-   cd marketing-ai-lab
-   ```
+3. Configure your API keys in the `.env` file (see `.env` file for format)
 
-3. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+## Running the Application
 
-4. Set up your environment variables in a `.streamlit/secrets.toml` file:
-   ```toml
-   REPLICATE_API_TOKEN = "your_replicate_api_token"
-   OPENAI_API_KEY = "your_openai_api_key"
-   ATLASSIAN_API_TOKEN = "your_atlassian_api_token"
-   ATLASSIAN_EMAIL = "your_atlassian_email"
-   ATLASSIAN_BASE_URL = "your_atlassian_base_url"
-   REVENUE_SPACE_KEY_OR_ID = "your_revenue_space_key_or_id"
-   SERPAPI_KEY = "your_serpapi_key"
-   FIGMA_API_TOKEN = "your_figma_api_token"
-   FIGMA_FILE_URL = "your_figma_file_url"
-   PAGE_NAME = "Screens"
-   ```
+To run the Flask application:
 
-5. Run the Streamlit app:
-   ```
-   streamlit run streamlit_app.py
-   ```
+```bash
+python app.py
+```
 
-## 📚 Usage
+The application will be available at http://127.0.0.1:5000/
 
-After launching the app, you'll see a grid of available tools. Click on any tool card to access its functionality. Each tool has its own interface and instructions for use.
+## Usage
 
-## 🤝 Contributing
+1. Enter LinkedIn profile URLs (one per line) in the text area
+2. Enter a research topic
+3. (Optional) Fill in your information for email/message signatures
+4. Click "Dive Deep" to start the research process
+5. Wait for the research to complete
+6. View and download the results
 
-Contributions to the Marketing AI Lab are welcome! Please feel free to submit a Pull Request.
+## Project Structure
 
-## 📄 License
+- `app.py`: Main Flask application
+- `deep_research.py`: Core research functionality
+- `config.py`: Configuration handling
+- `templates/`: HTML templates
+- `static/`: Static files (CSS, JS, images)
+- `utils/`: Utility functions
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Note on Environment Variables
 
-## 🙏 Acknowledgements
+The application uses environment variables for API keys. These are loaded from the `.env` file. The environment variables are prefixed with `DYNACONF_` in the `.env` file to maintain compatibility with the original codebase.
 
-- [Streamlit](https://streamlit.io/) for the amazing app framework
-- [OpenAI](https://openai.com/) for GPT integration
-- [Replicate](https://replicate.com/) for AI model hosting
-- [Atlassian](https://www.atlassian.com/) for Confluence integration
-- [SerpApi](https://serpapi.com/) for search data
-- [Figma](https://www.figma.com/) for design integration
+## License
+
+Proprietary - All rights reserved 

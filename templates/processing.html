@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Processing Research - Deep Research{% endblock %}
+
+{% block head %}
+<style>
+    .loading-container {
+        text-align: center;
+        padding: 3rem 0;
+    }
+    .spinner {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 2rem;
+        border: 10px solid #f3f3f3;
+        border-top: 10px solid #3498db;
+        border-radius: 50%;
+        animation: spin 2s linear infinite;
+    }
+    .status-text {
+        margin-top: 1rem;
+        font-size: 1.2rem;
+        color: #666;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Research in Progress</h3>
+            </div>
+            <div class="card-body">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <h4>Diving deep into your research...</h4>
+                    <p class="status-text" id="status-text">Beginning research pipeline...</p>
+                    <div class="progress mt-4">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                    </div>
+                    <p class="mt-3">This may take several minutes depending on the number of profiles and complexity of the research.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Start the research process when the page loads
+        startResearch();
+        
+        // Set up a progress simulation
+        simulateProgress();
+    });
+    
+    function startResearch() {
+        fetch('{{ url_for("run_research") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to results page
+                window.location.href = data.redirect;
+            } else {
+                // Show error
+                document.getElementById('status-text').textContent = 'Error: ' + data.error;
+                document.getElementById('status-text').style.color = '#dc3545';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('status-text').textContent = 'Error connecting to server. Please try again.';
+            document.getElementById('status-text').style.color = '#dc3545';
+        });
+    }
+    
+    // Simulate progress while waiting for the real process to complete
+    function simulateProgress() {
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('status-text');
+        const steps = [
+            'Researching topic...',
+            'Fetching case studies...',
+            'Processing LinkedIn profiles...',
+            'Fetching LinkedIn posts...',
+            'Generating reports...',
+            'Generating personalized messages...',
+            'Finalizing results...'
+        ];
+        
+        let progress = 0;
+        let stepIndex = 0;
+        
+        const interval = setInterval(() => {
+            // Increment progress slowly, but never reach 100%
+            // The actual completion will come from the API response
+            if (progress < 85) {
+                progress += 0.5;
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+                
+                // Update status text at certain progress points
+                if (progress % 12 === 0 && stepIndex < steps.length) {
+                    statusText.textContent = steps[stepIndex];
+                    stepIndex++;
+                }
+            }
+        }, 1000);
+        
+        // Clean up interval when page unloads
+        window.addEventListener('beforeunload', () => {
+            clearInterval(interval);
+        });
+    }
+</script>
+{% endblock %} 

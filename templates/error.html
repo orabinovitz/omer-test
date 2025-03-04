@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Deep Research{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4>Error Occurred</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5>{{ error }}</h5>
+                        {% if details %}
+                        <hr>
+                        <p>{{ details }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">Return to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
